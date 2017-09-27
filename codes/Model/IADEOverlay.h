@@ -13,15 +13,12 @@ class IADEOverlay : public Overlay
 public:
 
 
-	static const int NUMBER_OF_COLOR = 7;
+	static const int NUMBER_OF_COLOR = 3;
 	const int* m_overlayColor[NUMBER_OF_COLOR];
 	const int zeros[4] = { 0,0,0,0 };
 	const int vesselWall[4] = { 0, 0, 255, 255 };
 	const int lumen[4] = { 255, 0, 0, 255 };
-	const int calcification[4] = { 0,255,0,255 };
-	const int hemorrhage[4] = { 255, 255, 0,255 };
-	const int lrnc[4] = { 0, 255, 255 ,255 };
-	const int lm[4] = { 255, 0, 255 ,255 };
+
 
 
 	IADEOverlay(QObject* parent = nullptr);
@@ -41,9 +38,9 @@ public:
 
 	virtual int getCurrentSlice();
 public slots:
-	virtual void updateMeasurement3D();
+	virtual void updateMeasurement3D() {};
 	virtual void setCurrentSlice(int slice);
-	virtual void updateMeasurement2D(int slice);
+	virtual void updateMeasurement2D(int slice) {};
 
 protected:
 	vtkSmartPointer<vtkPolyData> m_centerline = nullptr;

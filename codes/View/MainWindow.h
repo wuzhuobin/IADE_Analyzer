@@ -20,18 +20,26 @@
 
 #include <QtWidgets/QMainWindow>
 
-//#include "ModuleWidget.h"
-//#include "ViewerWidget.h"
 
+#ifdef PLAQUEQUANT_VER
+#define MEASUREMENT_WIDGET MeasurementWidget
+
+#endif // PLAQUEQUANT_VER
+
+#ifdef IADE_VER
+#define MEASUREMENT_WIDGET IADEMeasurementWidget
+#endif // IADE_VER
 
 
 namespace Ui { class MainWindow; }
 class vtkRenderWindow;
 class QMenu;
 class QSettings;
-class ModuleWidget;
+class Switch2DWidget;
+class Switch3DWidget;
 class ViewerWidget;
-class MeasurementWidget;
+class MEASUREMENT_WIDGET;
+class LabelWidget;
 
 class MainWindow : public QMainWindow
 {
@@ -56,27 +64,37 @@ public:
 
 	// get ui things for connection 
 	Ui::MainWindow* getUi();
-	//QMainWindow* getCentralWidget();
-	ModuleWidget* getModuleWidget();
+	Switch2DWidget* getSwitch2DWidget();
+	Switch3DWidget* getSwitch3DWidget();
 	ViewerWidget* getViewerWidget(unsigned int num);
-	MeasurementWidget* getMeasurementWidget();
+	MEASUREMENT_WIDGET* getMeasurementWidget();
+	LabelWidget* getLabelWidget();
 	QMenu* getSelectImgMenu(unsigned int i);
+
+protected:
+	virtual void dragEnterEvent(QDragEnterEvent* event);
+	virtual void dropEvent(QDropEvent* event);
 
 signals:
 
-	void signalImageImportLoad(QList<QStringList>*);
+	void signalImageImportLoad(QStringList);
+	void signalCurvedImageExport(QString);
 	void signalOverlayImportLoad(QString);
 	void signalOverlayExportSave(QString);
+	void signalReportExport(QString);
 
 
 private slots:
 	
 	void slotOpenRecentImage();
-	void slotOpenNewImage();
+	void slotOpenNewImage(QString path = QString());
+	void slotOpen(QString path = QString());
+	void slotSaveCurvedImage(QString path = QString());
+	void slotOpenOverlay(QString path = QString());
+	void slotSaveOverlay(QString path = QString());
 
-	void slotOpenOverlay();
-	void slotSaveOverlay();
-
+	void slotExportReport(QString path = QString());
+	void slotExportCSV(QString path = QString());
 	/**
 	* four viewers and maximum
 	*/
@@ -86,9 +104,7 @@ private slots:
 private:
 	Ui::MainWindow* ui;
 
-	void imageImport(QString path);
-
-	void setEnabled(bool flag);
+	void imageImport(QString path = QString());
 
 	//Recent File
 	const static int MAX_RECENT_IMAGE = 10;
@@ -99,11 +115,13 @@ private:
 	
 	ViewerWidget* viewerWidgets[NUM_OF_VIEWERS] = { nullptr };
 
-	ModuleWidget* moduleWiget = nullptr;
+	Switch2DWidget* switch2DWidget = nullptr;
 
-	MeasurementWidget* measurementWidget = nullptr;
+	Switch3DWidget* switch3DWidget = nullptr;
 
-	//QMainWindow* centralWidget = nullptr;
+	MEASUREMENT_WIDGET* measurementWidget = nullptr;
+
+	LabelWidget* labelWidget = nullptr;
 
 	QMenu* selectImgMenus[NUM_OF_VIEWERS] = { nullptr };
 

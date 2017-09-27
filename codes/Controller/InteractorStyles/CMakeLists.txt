@@ -119,6 +119,10 @@ target_link_libraries(
 	ReorderPointIdOfContourFilter
 	LumenSegmentationFilter
 	MaximumWallThickness
+	ContourWidgetSeries
+	VesselWallHoughTransformCircles
+	MagneticContourLineInterpolator
+	qtcsv
 )
 
 target_include_directories(

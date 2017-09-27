@@ -5,6 +5,7 @@ IF(COMMAND CMAKE_POLICY)
 ENDIF(COMMAND CMAKE_POLICY)
 
 project(IADE_Analyzer)
+add_definitions(-DIADE_VER)
 
 # MSUT find vtk first
 #VTK

@@ -49,6 +49,12 @@ public slots:
 	virtual void UpdateWidgetToSeeds(
 		int* newImagePos,
 		int* oldImagePos = nullptr) override;
+
+signals:
+
+	void elongationChanged(int i);
+	void detourChanged(int i);
+
 protected:
 	QInteractorStyleVBDSmokerSeeds(int uiType = UNIQUE_UI, QWidget* parent = Q_NULLPTR);
 	~QInteractorStyleVBDSmokerSeeds();
@@ -58,11 +64,11 @@ protected:
 	* @oveerride
 	* do nothing
 	*/
-	virtual void UpdateWidgetToSeeds(
+	void UpdateWidgetToSeeds(
 		std::vector<int*>& seeds,
 		int* newImagePos,
-		int* oldImagePos = nullptr) override;
-	virtual void ClearAllSeeds() override;
+		int* oldImagePos = nullptr);
+	void ClearAllSeeds() override;
 
 
 	virtual void OnLeftButtonDown() override;

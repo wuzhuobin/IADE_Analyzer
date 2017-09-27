@@ -12,16 +12,28 @@
 
 #include <vtkImageCroppingRegionsWidget.h>
 
+#include <QFileDialog>
+
+#include "qtcsv/stringdata.h"
+#include "qtcsv/reader.h"
+#include "qtcsv/writer.h"
+
+
 vtkStandardNewMacro(QInteractorStyleVOI);
 QSETUP_UI_SRC(QInteractorStyleVOI);
 vtkSmartPointer<vtkROIWidget> QInteractorStyleVOI::m_roi = nullptr;
 vtkSmartPointer<vtkRenderWindow> QInteractorStyleVOI::m_renderWindow = nullptr;
 
 
+
+
 void QInteractorStyleVOI::SetCustomEnabled(bool flag)
 {
 	QInteractorStyleNavigation::SetCustomEnabled(flag);
+	uniqueInvoke(flag);
 	if (flag) {
+		// Change orientation of border widgets too
+		m_roi->SetBorderWidgetOrientation(m_uniqueROIId, GetSliceOrientation());
 		m_roi->SetBorderWidgetsInteractor(m_uniqueROIId, this->Interactor);
 		m_roi->GetRepresentation()->PlaceWidget(
 			GetImageViewer()->GetInput()->GetBounds());
@@ -35,7 +47,6 @@ void QInteractorStyleVOI::SetCustomEnabled(bool flag)
 	GetImageViewer()->Render();
 	// suppose it should able to disappear by the following
 	//m_roi->Render();
-	uniqueInvoke(flag);
 }
 void QInteractorStyleVOI::slotUpdateVOISpinBoxes(double * values)
 {
@@ -77,18 +88,66 @@ void QInteractorStyleVOI::slotUpdateVOISpinBoxes(double * values)
 
 void QInteractorStyleVOI::ExtractVOI()
 {
-	int extent[6];
 	const double* bounds = m_roi->GetRepresentation()->GetBounds();
 	for (int i = 0; i < 3; ++i) {
-		extent[i*2] = (bounds[i*2] - GetOrigin()[i]) / GetSpacing()[i];
-		extent[i*2 + 1] = (bounds[i*2 + 1] - GetOrigin()[i]) / GetSpacing()[i];
+		m_voi[i*2] = (bounds[i*2] - GetOrigin()[i]) / GetSpacing()[i];
+		m_voi[i*2 + 1] = (bounds[i*2 + 1] - GetOrigin()[i]) / GetSpacing()[i];
 		// not voi clamping, the extraction can be more flexible
 		//extent[i*2] = extent[i*2] > GetExtent()[i*2] ? extent[i*2] : GetExtent()[i*2];
 		//extent[i*2 + 1] = extent[i*2 + 1] < GetExtent()[i*2 + 1] ? extent[i*2 + 1] : GetExtent()[i*2 +1];
 	}
-	GetImageViewer()->SetDisplayExtent(extent);
+	RestoreVOI();
+	//GetImageViewer()->SetDisplayExtent(m_voi);
+	//SetExtentRange(GetImageViewer()->GetDisplayExtent());
+	//GetImageViewer()->Render();
+}
+
+void QInteractorStyleVOI::RestoreVOI()
+{
+	GetImageViewer()->SetDisplayExtent(m_voi);
 	SetExtentRange(GetImageViewer()->GetDisplayExtent());
 	GetImageViewer()->Render();
+}
+
+void QInteractorStyleVOI::SaveVOI()
+{
+	QString fileName = QFileDialog::getSaveFileName(this, tr("Save VOI"), 
+		QString(), tr("VOI (*.csv)"));
+	if (fileName.isEmpty()) {
+		return;
+	}
+
+	QStringList strData;
+	for (int i = 0; i < 6; i++)
+	{
+		strData << QString::number(this->m_voi[i]);
+	}
+	
+	QFile file(fileName);
+
+	QtCSV::Writer::write(fileName, QtCSV::StringData() << strData);
+}
+
+void QInteractorStyleVOI::LoadVOI()
+{
+	QString fileName = QFileDialog::getOpenFileName(this, tr("Load VOI"), 
+		QString(), tr("VOI (*.csv)"));
+
+	if (fileName.isEmpty()) {
+		return;
+	}
+
+	QList<QStringList> readData = QtCSV::Reader::readToList(fileName);
+	
+	int voi[6];
+	for (int i = 0; i < 6; i++)
+	{
+		voi[i] = readData.first()[i].toInt();
+
+	}
+	SAFE_DOWN_CAST_IMAGE_CONSTITERATOR(QInteractorStyleVOI, SetVOI(voi));
+
+
 }
 
 void QInteractorStyleVOI::ResetVOI()
@@ -125,16 +184,36 @@ void QInteractorStyleVOI::uniqueInitialization()
 		m_roi->GetRepresentation()->SetPlaceFactor(1);
 	}
 	/// ROI
-	connect(m_roi, SIGNAL(signalROIBounds(double*)),
-		this, SLOT(slotUpdateVOISpinBoxes(double*)));
+	vtkSmartPointer<vtkCallbackCommand> callback =
+		vtkSmartPointer<vtkCallbackCommand>::New();
+	callback->SetClientData(this);
+	callback->SetCallback([](vtkObject *caller, unsigned long eid,
+		void *clientdata, void *calldata) {
+		QInteractorStyleVOI* self = reinterpret_cast<QInteractorStyleVOI*>(clientdata);
+		vtkROIWidget* roiWidget = reinterpret_cast<vtkROIWidget*>(caller);
+		vtkBoxRepresentation* roiWidgetRep = reinterpret_cast<vtkBoxRepresentation*>(roiWidget->GetRepresentation());
+		self->slotUpdateVOISpinBoxes(roiWidgetRep->GetBounds());
+	});
+	m_roi->AddObserver(vtkCommand::InteractionEvent, callback);
+	connect(this->ui->pushButtonSaveVOI, SIGNAL(clicked()), this, SLOT(SaveVOI()));
+	connect(this->ui->pushButtonLoadVOI, SIGNAL(clicked()), this, SLOT(LoadVOI()));
+	//connect(m_roi, SIGNAL(signalROIBounds(double*)),
+	//	this, SLOT(slotUpdateVOISpinBoxes(double*)));
 }
 
 void QInteractorStyleVOI::initialization()
 {
 	m_uniqueROIId = numOfMyself - 1;
-
+	m_roi->SetNumbeOfBorderWidgets(numOfMyself);
 	connect(ui->pushButtonResetVOI, SIGNAL(clicked()),
 		this, SLOT(ResetVOI()));
+	connect(ui->pushButtonRestoreVOI, SIGNAL(clicked()),
+		this, SLOT(RestoreVOI()));
 	connect(ui->pushButtonExtractVOI, SIGNAL(clicked()),
 		this, SLOT(ExtractVOI()));
+}
+
+void QInteractorStyleVOI::SetVOI(int voi[6])
+{
+	std::copy_n(voi, 6, this->m_voi);
 }

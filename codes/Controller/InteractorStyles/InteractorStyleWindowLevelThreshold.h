@@ -11,10 +11,18 @@ public:
 
 	virtual void SetOutputLabel(int label);
 	virtual void ThresholdToOverlay();
+	virtual void SetThreshold(double lower, double upper);
+
+	virtual void SetThresholdByViewer(double lower, double upper);
+
 
 protected: 
 
-	unsigned char m_label = 1;
+
+	virtual void WindowLevel() override;
+	virtual void ResetWindowLevel();
+
+	unsigned char m_label = 0;
 
 
 };

@@ -1,5 +1,5 @@
-﻿#ifndef __QINTERACTOR_STYLE_WINDOW_LEVEL_H__
-#define __QINTERACTOR_STYLE_WINDOW_LEVEL_H__
+﻿#ifndef __QINTERACTOR_STYLE_WINDOW_LEVEL_THRESHOLD_H__
+#define __QINTERACTOR_STYLE_WINDOW_LEVEL_THRESHOLD_H__
 /**
 * @file	QInteractorStyleWindowLevelThreshold.h
 * @brief	whatever
@@ -51,19 +51,18 @@ public slots:
 	 * @override
 	 * @brief	function to set the window width spinbox
 	 */
-	virtual void SetWindow(int window);
+	virtual void SetLowerThreshold(int window);
 
 	/**
 	* @override
 	* @brief	function to set the window level spinbox
 	*/
-	virtual void SetLevel(int level);
+	virtual void SetUpperThreshold(int level);
 
 	virtual void ThresholdTargetViewerToOverlay();
 	virtual void SetOutputLabel(int label)override;
 
-	virtual void SetWindowByViewer(double window);
-	virtual void SetLevelByViewer(double level);
+	virtual void SetThresholdByViewer(double lower, double upper) override;
 	virtual void ResetWindowLevel() override;
 
 protected:
@@ -93,14 +92,13 @@ private:
 	///< the pointer of the navigation ui.
 	Ui::QInteractorStyleWindowLevelThreshold *ui = nullptr;
 	QLabel* m_label = nullptr;
-	QSpinBox* m_spinBoxWindowLevel = nullptr;
-	QSpinBox* m_spinBoxWindowWidth = nullptr;
-	QSlider* m_sliderWindowLevel = nullptr;
-	QSlider* m_sliderWindowWidth = nullptr;
+	QSpinBox* m_spinBoxUpperThreshold = nullptr;
+	QSpinBox* m_spinBoxLowerThreshold = nullptr;
+	QSlider* m_sliderUpperThreshold = nullptr;
+	QSlider* m_sliderLowerThreshold = nullptr;
 	QPushButton* m_pushButtonReset = nullptr;
-	QStringList m_listOfModalityNames;
 
 };
 
 
-#endif // !__QINTERACTOR_STYLE_WINDOW_LEVEL_H__
+#endif // !__QINTERACTOR_STYLE_WINDOW_LEVEL_THRESHOLD_H__

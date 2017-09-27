@@ -77,14 +77,44 @@ void SurfaceViewer::Render(void)
 	}
 }
 
+void SurfaceViewer::SetOrientation(int orientation)
+{
+	if (orientation < ORIENTATION_YZ ||
+		orientation > ORIENTATION_XY)
+	{
+		vtkErrorMacro("Error - invalid slice orientation " << orientation);
+		return;
+	}
+
+	if (this->Orientation == orientation)
+	{
+		return;
+	}
+
+	this->Orientation = orientation;
+
+
+	this->UpdateOrientation();
+	this->UpdateDisplayExtent();
+
+	this->Render();
+}
+
 void SurfaceViewer::SetInputData(vtkImageData * in)
 {
-	this->SurfaceActor->VisibilityOn();
-	this->ImageResample->SetInputData(in);
-	double spacing = std::fmin(std::fmin(in->GetSpacing()[0], in->GetSpacing()[1]), in->GetSpacing()[2]);
-	this->ImageResample->SetOutputSpacing(spacing, spacing, spacing);
-	UpdateDisplayExtent();
-	InvokeEvent(vtkCommand::UpdateDataEvent);
+	if (GetInput() != in) {
+		// when input is a different extent, First Render
+		if (GetInput() == nullptr ||
+			!std::equal(in->GetExtent(), in->GetExtent() + 6, GetInput()->GetExtent())) {
+			this->FirstRender = true;
+		}
+		this->SurfaceActor->VisibilityOn();
+		this->ImageResample->SetInputData(in);
+		double spacing = std::fmin(std::fmin(in->GetSpacing()[0], in->GetSpacing()[1]), in->GetSpacing()[2]);
+		this->ImageResample->SetOutputSpacing(spacing, spacing, spacing);
+		UpdateDisplayExtent();
+		InvokeEvent(vtkCommand::UpdateDataEvent);
+	}
 }
 
 vtkImageData * SurfaceViewer::GetInput()
@@ -111,12 +141,15 @@ void SurfaceViewer::UpdateDisplayExtent()
 			this->InteractorStyle->GetAutoAdjustCameraClippingRange())
 		{
 			this->Renderer->ResetCameraClippingRange();
+			this->Renderer->ResetCamera();
+		}
+		else
+		{
+			this->Renderer->ResetCameraClippingRange(w_bounds);
+			this->Renderer->ResetCamera();
 		}
 	}
-	else
-	{
-		this->Renderer->ResetCameraClippingRange(w_bounds);
-	}
+
 }
 
 //----------------------------------------------------------------------------
@@ -220,6 +253,7 @@ void SurfaceViewer::SetRenderer(vtkRenderer * arg)
 	}
 
 	this->InstallPipeline();
+	this->UpdateOrientation();
 }
 
 void SurfaceViewer::SetupInteractor(vtkRenderWindowInteractor * arg)
@@ -487,6 +521,36 @@ void SurfaceViewer::UnInstallPipeline()
 	{
 		this->Interactor->SetInteractorStyle(nullptr);
 		this->Interactor->SetRenderWindow(nullptr);
+	}
+}
+
+void SurfaceViewer::UpdateOrientation()
+{
+	// Set the camera position
+
+	vtkCamera *cam = this->Renderer ? this->Renderer->GetActiveCamera() : NULL;
+	if (cam)
+	{
+		switch (this->Orientation)
+		{
+		case ORIENTATION_XY:
+			cam->SetFocalPoint(0, 0, 0);
+			cam->SetPosition(0, 0, -1); // -1 if medical ?
+			cam->SetViewUp(0, -1, 0);
+			break;
+
+		case ORIENTATION_XZ:
+			cam->SetFocalPoint(0, 0, 0);
+			cam->SetPosition(0, -1, 0); // 1 if medical ?
+			cam->SetViewUp(0, 0, 1);
+			break;
+
+		case ORIENTATION_YZ:
+			cam->SetFocalPoint(0, 0, 0);
+			cam->SetPosition(1, 0, 0); // -1 if medical ?
+			cam->SetViewUp(0, 0, 1);
+			break;
+		}
 	}
 }
 

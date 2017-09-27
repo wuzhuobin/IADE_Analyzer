@@ -19,8 +19,6 @@ class IOManager:public QObject
 {
 	Q_OBJECT;
 public:
-	//typedef itk::Image<float, 3> ImageType;
-	//typedef itk::Image<unsigned char, 3> OverlayType;
 
 	IOManager(QObject* parent = nullptr);
 	~IOManager();
@@ -34,26 +32,17 @@ public:
 	*/
 	void clearListsOfFileNames();
 
-	//const QList<ImageType::Pointer> getListOfItkImages() const;
 	const QList<vtkSmartPointer<IVtkImageData>> getListOfImage() const;
-	/**
-	 * 
-	 */
-	//void clearListOfItkImages();
 
 	const QList<itk::GDCMImageIO::Pointer> getListOfDicomIOs() const;
 
 	void clearListOfDicoms();
 
-	//const OverlayType::Pointer getOverlay() const;
-
 	const QSharedPointer<Overlay> getOverlay() const;
-
-	//void clearOverlay();
 
 public slots:
 
-	void slotAddToListOfFileNamesAndOpen(QList<QStringList>* listOfFileNames);
+	void slotAddToListOfFileNamesAndOpen(QStringList listOfFileNames);
 	/**
 	 * @brief	add a file name to #listOfFileNames
 	 * @param	fileNames	a image fileName.
@@ -73,30 +62,18 @@ public slots:
 
 	virtual void slotInitializeOverlay(IVtkImageData::itkImageType::Pointer image);
 
-	//void slotOpenSegmentationWithDiaglog();
+	virtual void slotOpenOverlay(QString fileName);
 
-	virtual void slotOpenSegmentation(QString fileName);
+	virtual void slotSaveOverlay(QString path);
 
-	//void slotSaveSegmentaitonWithDiaglog();
-
-	void slotSaveSegmentation(QString path);
-
-	void slotSaveSegmentation(OverlayImageData::itkImageType::Pointer input, QString path);
-
-
-	//void slotSaveContourWithDiaglog();
-	//
-	//void slotSaveContour(QString fileName);
+	virtual void slotSaveOverlay(OverlayImageData::itkImageType::Pointer input, QString path);
 
 signals:
 	void signalFinishOpenMultiImages();
 
-	//void signalFinishOpenMultiImages(QList<ImageType::Pointer>*, QList<itk::GDCMImageIO::Pointer>*);
-
 	void signalFinishOpenOneImage();
 
 	void signalFinishOpenOverlay();
-	//void finishOpenSegmentation();
 
 protected:
 	bool loadImageData(QStringList fileNames);
@@ -105,14 +82,10 @@ protected:
 	IVtkImageData::itkImageType::Pointer imageAlignment(IVtkImageData::itkImageType::Pointer alignedTo,
 		IVtkImageData::itkImageType::Pointer toBeAligned);
 
-//private:
 	QList<QStringList> listOfFileNames;
-	//QList<ImageType::Pointer> listOfItkImages;
 	QList<vtkSmartPointer<IVtkImageData>> listOfImages;
 	QList<itk::GDCMImageIO::Pointer> listOfDicomIOs;
 
-	//ImageType::Pointer overlay;
-	//OverlayType::Pointer overlay;
 	QSharedPointer<Overlay> overlay;
 
 	//QString filePath;

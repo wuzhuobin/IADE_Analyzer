@@ -29,6 +29,7 @@ Copyright (C) 2016
 class vtkImageCanvasSource2D;
 class vtkBorderWidget;
 class vtkBorderRepresentation;
+class vtkCircleBorderRepresentation;
 class vtkImageActor;
 class vtkRenderer;
 
@@ -97,7 +98,7 @@ protected:
 	int m_brushSize;
 	bool m_isDraw;
 	int m_brushShape = SQUARE;
-	bool m_eraserModeFlag = false;
+	bool m_eraserModeFlag = true;
 
 };
 

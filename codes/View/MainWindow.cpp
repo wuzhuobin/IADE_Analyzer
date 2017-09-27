@@ -2,17 +2,25 @@
 
 #include "ui_MainWindow.h"
 #include "ui_ViewerWidget.h"
-#include "ModuleWidget.h"
+#include "ui_Switch2DWidget.h"
+#include "Switch2DWidget.h"
+#include "ui_Switch3DWidget.h"
+#include "Switch3DWidget.h"
 #include "ViewerWidget.h"
 #include "MeasurementWidget.h"
+#include "IADEMeasurementWidget.h"
+#include "LabelWidget.h"
 
 #include <qdebug.h>
 #include <qsettings.h>
 #include <qfiledialog.h>
 #include <QVTKInteractor.h>
-
+#include <qmessagebox.h>
+#include <qevent.h>
+#include <qmimedata.h>
 
 #include <vtkRenderWindow.h>
+#include <vtkGenericOpenGLRenderWindow.h>
 
 #include "RegistrationWizard.h"
 
@@ -22,13 +30,20 @@ MainWindow::MainWindow(QWidget *parent)
 	ui = new Ui::MainWindow;
 	ui->setupUi(this);
 
-	this->moduleWiget = new ModuleWidget(this);
-	ui->moduleWidgetDockWidget->setWidget(this->moduleWiget);
+	this->switch2DWidget = new Switch2DWidget(this);
+	ui->dockWidget2D->setWidget(this->switch2DWidget);
 
-	this->measurementWidget = new MeasurementWidget(this);
-	ui->measurementDockWidget->setWidget(measurementWidget);
+	this->switch3DWidget = new Switch3DWidget(this);
+	ui->dockWidget3D->setWidget(this->switch3DWidget);
 
-	this->tabifyDockWidget(ui->measurementDockWidget, ui->moduleWidgetDockWidget);
+	this->labelWidget = new LabelWidget(this);
+	this->switch2DWidget->getUi()->verticalLayoutModule->addWidget(this->labelWidget);
+
+	this->measurementWidget = new MEASUREMENT_WIDGET(this);
+	ui->dockWidgetMeasurement->setWidget(measurementWidget);
+
+	this->tabifyDockWidget(ui->dockWidgetMeasurement, ui->dockWidget3D);
+	this->tabifyDockWidget(ui->dockWidgetMeasurement, ui->dockWidget2D);
 
 	QMainWindow* centralWidget = new QMainWindow(this);
 	centralWidget->setDockNestingEnabled(true);
@@ -44,6 +59,7 @@ MainWindow::MainWindow(QWidget *parent)
 		}
 		this->selectImgMenus[i] = new QMenu(this);
 		this->viewerWidgets[i]->getUi()->pushButtonSelectImage->setMenu(this->selectImgMenus[i]);
+		this->viewerWidgets[i]->setWindowTitle(QString("Viewer ") + QString::number(i));
 	}
 	settings = new QSettings("Setting.ini", QSettings::IniFormat, this);
 
@@ -55,6 +71,7 @@ MainWindow::MainWindow(QWidget *parent)
 		ui->actionImage3, SLOT(setChecked(bool)));
 	connect(viewerWidgets[3]->getUi()->pushButtonRestore, SIGNAL(toggled(bool)),
 		ui->actionImage4, SLOT(setChecked(bool)));
+
 
 	QActionGroup* actionGroupActionImage = new QActionGroup(this);
 	actionGroupActionImage->addAction(ui->actionImage1);
@@ -73,19 +90,24 @@ MainWindow::MainWindow(QWidget *parent)
 	QActionGroup* actionGroupView = new QActionGroup(this);
 	actionGroupView->addAction(ui->actionAll_axial_view);
 	actionGroupView->addAction(ui->actionMulti_planar_view);
-	//actionGroupView->addAction(ui->actionCurved_view);
 	actionGroupView->setExclusive(true);
 
 
 	QActionGroup* actionGroupImage = new QActionGroup(this);
 	actionGroupImage->addAction(ui->actionNavigation);
 	actionGroupImage->addAction(ui->actionWindow_level);
+	actionGroupImage->addAction(ui->actionWindow_level_threshold);
+	actionGroupImage->addAction(ui->actionThreshold);
 	actionGroupImage->addAction(ui->acitonVOI_selection);
 	actionGroupImage->addAction(ui->actionPaint_brush);
 	actionGroupImage->addAction(ui->actionSeeds_placer);
-	actionGroupImage->addAction(ui->actionVBD_Smoker);
+	actionGroupImage->addAction(ui->actionVBD_Smoker_seed);
 	actionGroupImage->addAction(ui->actionTubular_VOI);
 	actionGroupImage->addAction(ui->actionDistance_measure);
+	actionGroupImage->addAction(ui->actionMaximum_wall_thickness);
+	actionGroupImage->addAction(ui->actionPolygon_draw);
+	actionGroupImage->addAction(ui->actionPolygon_draw_series);
+	actionGroupImage->addAction(ui->actionVessel_segmentation);
 	actionGroupImage->addAction(ui->actionTesting);
 	actionGroupImage->setExclusive(true);
 
@@ -94,18 +116,72 @@ MainWindow::MainWindow(QWidget *parent)
 	actionGroupSurface->addAction(ui->actionTraceball_camera);
 	actionGroupSurface->addAction(ui->actionCenter_line);
 	actionGroupSurface->addAction(ui->actionFind_maximum_radius);
+	actionGroupSurface->addAction(ui->actionVBD_Smoker_BA_diameter);
+	actionGroupSurface->addAction(ui->actionICDA_diameter);
 	actionGroupSurface->addAction(ui->actionCurved_navigation);
+	actionGroupSurface->addAction(ui->actionPerpendicular_measurement);
+	actionGroupSurface->addAction(ui->actionWay_point_centerline);
+	actionGroupSurface->addAction(ui->actionStenosis);
 	actionGroupSurface->setExclusive(true);
+
+	connect(ui->actionICDA_standard, SIGNAL(triggered()),
+		ui->actionNavigation, SIGNAL(triggered()));
+	connect(ui->actionICDA_standard, SIGNAL(triggered()),
+		ui->actionICDA_diameter, SIGNAL(triggered()));
+	connect(ui->actionSmoker_standard, SIGNAL(triggered()),
+		ui->actionVBD_Smoker_seed, SIGNAL(triggered()));
+	connect(ui->actionSmoker_standard, SIGNAL(triggered()),
+		ui->actionVBD_Smoker_BA_diameter, SIGNAL(triggered()));
+	connect(ui->actionUbogu_standard, SIGNAL(triggered()),
+		ui->actionNavigation, SIGNAL(triggered()));
+	connect(ui->actionUbogu_standard, SIGNAL(triggered()),
+		ui->actionVBD_ubogu_measure, SIGNAL(triggered()));
+
+
+	QActionGroup* actionGroupDiagnosis = new QActionGroup(this);
+	actionGroupDiagnosis->addAction(ui->actionICDA_standard);
+	actionGroupDiagnosis->addAction(ui->actionSmoker_standard);
+	actionGroupDiagnosis->addAction(ui->actionUbogu_standard);
+	actionGroupDiagnosis->setExclusive(true);
+
 
 
 	// Connection
 	connect(ui->actionExit, SIGNAL(triggered()), this, SLOT(close()));
-	connect(ui->actionImport_images, SIGNAL(triggered()), this, SLOT(slotOpenNewImage()));
+	connect(ui->actionImport, SIGNAL(triggered()),
+		this, SLOT(slotOpen()));
+	connect(ui->actionImport_images, SIGNAL(triggered()), 
+		this, SLOT(slotOpenNewImage()));
+	connect(ui->actionExport_curved_images, SIGNAL(triggered()),
+		this, SLOT(slotSaveCurvedImage()));
 	connect(ui->actionImport_segmentation, SIGNAL(triggered()),
 		this, SLOT(slotOpenOverlay()));
 	connect(ui->actionExport_segmentation, SIGNAL(triggered()), 
 		this, SLOT(slotSaveOverlay()));
+	connect(ui->actionExport_Report, SIGNAL(triggered()),
+		this, SLOT(slotExportReport()));
+	connect(ui->actionExport_CSV, SIGNAL(triggered()),
+		this, SLOT(slotExportCSV()));
 	createRecentImageActions();
+
+	this->ui->actionTesting->setVisible(false);
+	this->ui->actionWindow_level_threshold->setVisible(false);
+	this->ui->actionPolygon_draw->setVisible(false);
+	this->ui->actionPolygon_draw_series->setVisible(false);
+	this->ui->actionMaximum_wall_thickness->setVisible(false);
+	this->ui->actionDistance_measure->setVisible(false);
+	this->ui->actionVBD_Smoker_seed->setVisible(false);
+	this->ui->actionTraceball_camera->setVisible(false);
+	this->ui->actionWay_point_centerline->setVisible(false);
+	this->ui->actionFind_maximum_radius->setVisible(false);
+	this->ui->actionICDA_diameter->setVisible(false);
+	this->ui->actionVBD_Smoker_BA_diameter->setVisible(false);
+	this->ui->actionPerpendicular_measurement->setVisible(false);
+	this->ui->actionStenosis->setVisible(false);
+	this->ui->actionCurved_navigation->setVisible(false);
+	this->ui->actionCurved_view->setVisible(false);
+	this->ui->menuProcess->menuAction()->setVisible(false);
+
 
 }
 
@@ -125,31 +201,97 @@ void MainWindow::slotOpenRecentImage()
 	}
 }
 
-void MainWindow::slotOpenNewImage()
+void MainWindow::slotOpenNewImage(QString path)
 {
-	imageImport("");
+	imageImport(path);
 }
 
-void MainWindow::slotOpenOverlay()
+void MainWindow::slotOpen(QString path)
 {
-		QString path = QFileDialog::getOpenFileName((this), 
-			QString(tr("Import Segmentation")), ".", tr("NIFTI Images (*.nii)"));
-		if (path.isEmpty())	return;
-		emit signalOverlayImportLoad(path);
+	QMessageBox openMessageBox;
+	openMessageBox.setIcon(QMessageBox::Question);
+	openMessageBox.setText("Import.");
+	openMessageBox.setInformativeText("Import images or segmentation?");
+	openMessageBox.setStandardButtons(QMessageBox::Cancel);
+	openMessageBox.setDefaultButton(QMessageBox::Cancel);
+	QPushButton* imagesButton = openMessageBox.addButton(tr("Images"), QMessageBox::ActionRole);
+	QPushButton* segmentationButton = openMessageBox.addButton(tr("Segmentation"), QMessageBox::ActionRole);
+	openMessageBox.exec();
+	if (openMessageBox.clickedButton() == imagesButton)
+	{
+		slotOpenNewImage(path);
+	}
+	else if (openMessageBox.clickedButton() == segmentationButton)
+	{
+		if (QFileInfo(path).completeSuffix() == "nii" || 
+			QFileInfo(path).completeSuffix() == "nii.gz")
+		{
+			slotOpenOverlay(path);
+		}
+		else {
+			QMessageBox::critical(this, tr("Nifti is needed."), tr("Segmentation file is in Nifti format.\n"
+				"Please import \"*.nii\" or \"*.nii.gz\". "), QMessageBox::Ok);
+		}
+	}
 }
 
-void MainWindow::slotSaveOverlay()
+void MainWindow::slotSaveCurvedImage(QString path)
 {
-	QString path = QFileDialog::getSaveFileName((this),
-		QString(tr("Export Segmentation")), ".", tr("NIFTI Images (*.nii)"));
+	if (path.isEmpty()) {
+		path = QFileDialog::getSaveFileName((this),
+			QString(tr("Export Curved Images")), path, tr("NIFTI Images (*.nii *.nii.gz)"));
+	}
+	if (path.isEmpty())	return;
+	emit signalCurvedImageExport(path);
+}
+
+void MainWindow::slotOpenOverlay(QString path)
+{
+	if (path.isEmpty()) {
+		path = QFileDialog::getOpenFileName((this),
+			QString(tr("Import Segmentation")), path, tr("NIFTI Images (*.nii *.nii.gz)"));
+	}
+	if (path.isEmpty())	return;
+	emit signalOverlayImportLoad(path);
+}
+
+void MainWindow::slotSaveOverlay(QString path)
+{
+	if (path.isEmpty()) {
+		path = QFileDialog::getSaveFileName((this),
+			QString(tr("Export Segmentation")), path, tr("NIFTI Images (*.nii *.nii.gz)"));
+	}
 	if (path.isEmpty())	return;
 	emit signalOverlayExportSave(path);
+}
+
+void MainWindow::slotExportReport(QString path)
+{
+	if (path.isEmpty()) {
+		path = QFileDialog::getSaveFileName((this),
+			QString(tr("Export Report")), path, tr("Report (*.pdf)"));
+	}
+	if (path.isEmpty())	return;
+	emit signalReportExport(path);
+
+	measurementWidget->GenerateReport(path);
+}
+
+void MainWindow::slotExportCSV(QString path)
+{
+		if (path.isEmpty()) {
+		path = QFileDialog::getSaveFileName((this),
+			QString(tr("Export CSV")), path, tr("Comma-Seperated Values (*.csv)"));
+	}
+	if (path.isEmpty())	return;
+	emit signalReportExport(path);
+
+	measurementWidget->GenerateCSV(path);
 }
 
 void MainWindow::slotImage(bool flag)
 {
 	QAction *action = qobject_cast<QAction *>(sender());
-	//qDebug() << actionGroupActionImage->checkedAction();
 	if (!flag) {
 		if (ui->actionImage1->isChecked() ||
 			ui->actionImage2->isChecked() ||
@@ -202,18 +344,18 @@ void MainWindow::imageImport(QString path)
 	for (int i = 0; i < modalityNames.size(); ++i) {
 		rw.setImageModalityNames(i, modalityNames[i]);
 	}
-	QList<QStringList> _listOfFileNames;
+	QStringList _listOfFileNames;
 
 	if (QWizard::Accepted == rw.exec()) {
 
 		for (int i = 0; i < modalityNames.size(); ++i) {
-			if (rw.getFileNames(i)) {
-				qDebug() << *rw.getFileNames(i);
-				_listOfFileNames << *rw.getFileNames(i);
-			}
+			//if (!rw.getFileNames(i).isEmpty()) {
+				qDebug() << rw.getFileNames(i);
+				_listOfFileNames << rw.getFileNames(i);
+			//}
 		}
 
-		emit signalImageImportLoad(&_listOfFileNames);
+		emit signalImageImportLoad(_listOfFileNames);
 
 		qDebug() << rw.getDirectory();
 
@@ -226,6 +368,9 @@ void MainWindow::initialization()
 {
 	this->setEnabled(true);
 
+
+
+
 	ui->centralwidget->setEnabled(true);
 
 	ui->ActionToolBar->setEnabled(true);
@@ -233,17 +378,43 @@ void MainWindow::initialization()
 	ui->actionMulti_planar_view->trigger();
 	ui->actionNavigation->trigger();
 
+	ui->actionNew_segmentation->setEnabled(true);
+	ui->actionImport_segmentation->setEnabled(true);
+	ui->actionExport_segmentation->setEnabled(true);
+	ui->actionExport_curved_images->setEnabled(true);
+	ui->actionExport_Report->setEnabled(true);
+	ui->actionExport_CSV->setEnabled(true);
+	
+
+
+	ui->menuImage->setEnabled(true);
+	//ui->menuSurface->setEnabled(true);
+	ui->menuDiagnosis->setEnabled(true);
+
+
+	ui->actionNavigation->setEnabled(true);
+	ui->actionWindow_level->setEnabled(true);
+	ui->actionThreshold->setEnabled(true);
+	ui->acitonVOI_selection->setEnabled(true);
+	ui->actionTubular_VOI->setEnabled(true);
+	ui->actionPaint_brush->setEnabled(true);
+	ui->actionVessel_segmentation->setEnabled(true);
+	ui->actionSeeds_placer->setEnabled(true);
+
+
+	ui->actionMulti_planar_view->setEnabled(true);
+	ui->actionAll_axial_view->setEnabled(true);
+	ui->actionCurved_view->setEnabled(true);
+	ui->actionMIP->setEnabled(true);
+
+
+	measurementWidget->slotUpdateInformation();
 }
 
 void MainWindow::enableInteractor(bool flag)
 {
 
 }
-
-//void MainWindow::setModuleWidget(QWidget * moduleWidget)
-//{
-//	ui->moduleWidgetDockWidget->setWidget(moduleWidget);
-//}
 
 void MainWindow::addModalityNames(QString name)
 {
@@ -274,14 +445,14 @@ Ui::MainWindow * MainWindow::getUi()
 	return this->ui;
 }
 
-//QMainWindow * MainWindow::getCentralWidget()
-//{
-//	return &this->centralWidget;
-//}
-
-ModuleWidget * MainWindow::getModuleWidget()
+Switch2DWidget * MainWindow::getSwitch2DWidget()
 {
-	return this->moduleWiget;
+	return this->switch2DWidget;
+}
+
+Switch3DWidget * MainWindow::getSwitch3DWidget()
+{
+	return this->switch3DWidget;
 }
 
 ViewerWidget * MainWindow::getViewerWidget(unsigned int num)
@@ -289,9 +460,14 @@ ViewerWidget * MainWindow::getViewerWidget(unsigned int num)
 	return this->viewerWidgets[num];
 }
 
-MeasurementWidget * MainWindow::getMeasurementWidget()
+MEASUREMENT_WIDGET* MainWindow::getMeasurementWidget()
 {
 	return this->measurementWidget;
+}
+
+LabelWidget * MainWindow::getLabelWidget()
+{
+	return this->labelWidget;
 }
 
 QMenu * MainWindow::getSelectImgMenu(unsigned int i)
@@ -299,9 +475,23 @@ QMenu * MainWindow::getSelectImgMenu(unsigned int i)
 	return selectImgMenus[i];
 }
 
-void MainWindow::setEnabled(bool flag)
+void MainWindow::dragEnterEvent(QDragEnterEvent * event)
 {
-	ui->actionAbout->setEnabled(true);
+	if (event->mimeData()->hasUrls()) {
+		// default only count the first one
+		QUrl url = event->mimeData()->urls().first();
+		// only accept local file or local directory
+		if (url.isLocalFile()) {
+			event->acceptProposedAction();
+		}
+	}
+}
+
+void MainWindow::dropEvent(QDropEvent * event)
+{
+	QUrl url = event->mimeData()->urls().first();
+	QFileInfo fileInfo(url.toLocalFile());
+	slotOpen(fileInfo.absoluteFilePath());
 
 }
 

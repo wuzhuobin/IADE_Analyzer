@@ -2,6 +2,7 @@
 #define MAXIMUMWALLTHICKNESS_H
 
 #include <vtkObject.h>
+#include <vtkSmartPointer.h>
 
 #include <vector>
 class vtkPolyData;

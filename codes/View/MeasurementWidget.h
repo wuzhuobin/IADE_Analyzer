@@ -4,10 +4,11 @@
 #include <QWidget>
 
 //#include "ui_measurementwidget.h"
+#include <itkGDCMImageIO.h>
 
 namespace Ui { class MeasurementWidget; }
 
-class MainWindow;
+class vtkRenderWindow;
 
 class MeasurementWidget : public QWidget {
 	Q_OBJECT
@@ -16,24 +17,21 @@ public:
 	MeasurementWidget(QWidget * parent = Q_NULLPTR);
 	~MeasurementWidget();
 
-	//void UpdateMeasurementsForObliqueSlice(vtkImageData*);
 	Ui::MeasurementWidget* getUi();
+	itk::GDCMImageIO::Pointer info = nullptr;
+	vtkRenderWindow* wind1 = nullptr;
+	vtkRenderWindow* wind2 = nullptr;
 
 public slots:
 	void slotUpdate3DMeasurements(double* Measurements3D);
 	void slotUpdate2DMeasurements(double* Measurements2D);
-	void slotUpdate2DMeasurements(int slice);
-	void slotUpdateImformation();
-	void slotReportGetInput();
+	void slotUpdateStenosis(double stenosis);
+	void slotUpdateInformation();
+	void GenerateReport(QString	path);
+	void GenerateCSV(QString path);
 
 private:
 	Ui::MeasurementWidget* ui = nullptr;
-
-	void GenerateReport();
-
-	friend class MainWindow;
-	MainWindow* m_mainWnd;
-
 
 };
 

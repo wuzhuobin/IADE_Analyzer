@@ -13,32 +13,40 @@ find_package(Qt5OpenGL)
 
 add_subdirectory(RegistrationWizard)
 add_subdirectory(ReportGenerator)
-
+add_subdirectory(Yolk3DSeries)
+add_subdirectory(qtcsv)
 set(
 	VIEW_H
 	MainWindow.h
 	LabelWidget.h
-	ModuleWidget.h
+	Switch2DWidget.h
+	Switch3DWidget.h
 	ViewerWidget.h
 	MeasurementWidget.h
+	IADEMeasurementWidget.h
 )
+
 
 set(
 	VIEW_SRC
 	MainWindow.cpp
 	LabelWidget.cpp
-	ModuleWidget.cpp
+	Switch2DWidget.cpp
+	Switch3DWidget.cpp
 	ViewerWidget.cpp
 	MeasurementWidget.cpp
+	IADEMeasurementWidget.cpp
 )
 
 set(
 	VIEW_UI
 	MainWindow.ui
 	LabelWidget.ui
-	ModuleWidget.ui
+	Switch2DWidget.ui
+	Switch3DWidget.ui
 	ViewerWidget.ui
 	MeasurementWidget.ui
+	IADEMeasurementWidget.ui
 )
 #Generate moc and ui file
 qt5_wrap_cpp(
@@ -60,6 +68,7 @@ add_library(
 	${VIEW_MOC}
 	${VIEW_UI_H}
 )
+# qt5_use_modules(View Core Widgets OpenGL PrintSupport)
 
 #link libraries
 target_link_libraries(
@@ -69,6 +78,8 @@ target_link_libraries(
 	Qt5::OpenGL
 	RegistrationWizard
 	ReportGenerator
+	qtcsv
+	Yolk3DSeries
 	)
 
 target_include_directories(
