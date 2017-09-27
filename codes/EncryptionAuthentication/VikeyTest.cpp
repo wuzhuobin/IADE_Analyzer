@@ -1,25 +1,16 @@
-
-#include "Core.h"
-#include "MainWindow.h"
-#include <QtWidgets/QApplication>
-
+#include <QApplication>
+#include <qdebug.h>
 
 #include "EncryptionAuthentication.h"
 
-#pragma comment(linker, "/SUBSYSTEM:windows /ENTRY:mainCRTStartup")
+#pragma comment(linker, "/SUBSYSTEM:console /ENTRY:mainCRTStartup")
 
-
-
-int main(int argc, char *argv[])
-{
-	itk::Object::GlobalWarningDisplayOff();
-	vtkObject::GlobalWarningDisplayOff();
-
-
+int main(int argc, char** argv) {
 	QApplication app(argc, argv);
+	// MainWindow mainWind;
 	EncryptionAuthentication ea(0, QString(), QString(),
-		QDateTime(QDate(2018, 12, 31),
-			QTime(24, 0, 0)),
+		QDateTime(QDate(2017, 01, 10),
+			QTime(24, 0, 0)), 
 		"68686868");
 
 	// disable reminder of the expire date
@@ -38,7 +29,6 @@ int main(int argc, char *argv[])
 		return EXIT_FAILURE;
 	}
 	else {
-		Core c;
 		// mainWnd.show(); 
 		return app.exec();
 	}

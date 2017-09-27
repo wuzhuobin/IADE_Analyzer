@@ -120,6 +120,6 @@ add_subdirectory(codes/Model)
 #add_subdirectory(codes/LumenExtraction)
 add_subdirectory(codes/Widgets)
 add_subdirectory(codes/Algorithm)
-
+add_subdirectory(codes/EncryptionAuthentication)
 
 
